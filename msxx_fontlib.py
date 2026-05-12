@@ -39,6 +39,7 @@ class MainMappingTable():
 
     def read_from_dict(self, data: dict):
         self.table = data["mainMappingTable"]
+        self.data = np.array(self.table, dtype=np.ushort)
 
 
 class SpecialCharTable(MainMappingTable):
@@ -53,6 +54,7 @@ class SpecialCharTable(MainMappingTable):
 
     def read_from_dict(self, data: dict):
         self.table = data["specialCharTable"]
+        self.data = np.array(self.table, dtype=np.ushort)
 
 
 class CharInfoTable():
@@ -105,6 +107,15 @@ class CharInfoTable():
     def read_from_dict(self, data: dict):
         self.table = data["charInfoTable"]
 
+        self.data = np.zeros(len(self.table), dtype=self.CharInfoStruct)
+        for i in range(len(self.table)):
+            self.data[i]["code"] = self.table[i]["code"]
+            self.data[i]["page"] = self.table[i]["page"]
+            self.data[i]["u1"] = self.table[i]["u1"]
+            self.data[i]["u2"] = self.table[i]["u2"]
+            self.data[i]["v1"] = self.table[i]["v1"]
+            self.data[i]["v2"] = self.table[i]["v2"]
+
 
 class PageTable():
     InfoStruct = np.dtype([
@@ -141,8 +152,8 @@ class PageTable():
         ]
 
     def write_info_to_bin(self):
-        np.ushort(len(self.infoData)).tofile(self.file)
-        np.array(self.infoData, dtype=self.InfoStruct).tofile(self.file)
+        np.uint8(len(self.pageInfoData)).tofile(self.file)
+        np.array(self.pageInfoData, dtype=self.InfoStruct).tofile(self.file)
 
     def read_page_from_bin(self):
         for pageInfo in self.pageInfoData:
@@ -152,8 +163,11 @@ class PageTable():
             self.pageData.append(page)
         # print("pageData[0] = {0}".format(self.pageData[0][:32]))
 
-    def write_page_to_bin(self):
-        pass
+    def write_page_to_bin(self, data: dict):
+        for page in data["pageInfoTable"]:
+            pageFile = open(page["pageFile"], "rb")
+            self.file.write(pageFile.read())
+            pageFile.close()
 
     def dump_page_texture(self, outDir: Path):
         """
@@ -179,8 +193,15 @@ class PageTable():
     def get_info_dict(self) -> dict:
         return {"pageInfoTable_len": len(self.pageInfoData), "pageInfoTable": self.pageInfoTable}
 
-    def read_from_dict(self, data: dict):
+    def read_info_from_dict(self, data: dict):
         self.pageInfoTable = data["pageInfoTable"]
+
+        self.pageInfoData = np.zeros(
+            len(self.pageInfoTable), dtype=self.InfoStruct)
+        for i in range(len(self.pageInfoTable)):
+            self.pageInfoData[i]["pixWidth"] = self.pageInfoTable[i]["pixWidth"]
+            self.pageInfoData[i]["pixHeight"] = self.pageInfoTable[i]["pixHeight"]
+            self.pageInfoData[i]["pageSize"] = self.pageInfoTable[i]["pageSize"]
 
 
 def read(args: argparse.Namespace):
@@ -221,6 +242,33 @@ def read(args: argparse.Namespace):
         t4.dump_page_texture(args.outDir)
 
 
+def write(args: argparse.Namespace):
+    jsonFile = open(args.Makefile, "rt")
+    Makefile_dict = json.load(jsonFile)
+    jsonFile.close()
+
+    fontBin = open(Path("FONT_LIB.BIN"), "wb")
+
+    t1 = MainMappingTable(fontBin)
+    t1.read_from_dict(Makefile_dict)
+    t1.write_to_bin()
+
+    t2 = SpecialCharTable(fontBin)
+    t2.read_from_dict(Makefile_dict)
+    t2.write_to_bin()
+
+    t3 = CharInfoTable(fontBin)
+    t3.read_from_dict(Makefile_dict)
+    t3.write_to_bin()
+
+    t4 = PageTable(fontBin)
+    t4.read_info_from_dict(Makefile_dict)
+    t4.write_info_to_bin()
+    t4.write_page_to_bin(Makefile_dict)
+
+    fontBin.close()
+
+
 def main():
     cmdParser = argparse.ArgumentParser(
         description="PSP Metal Slug XX “FONT_LIB.BIN”文件解析与仿制工具")
@@ -233,6 +281,8 @@ def main():
         "-d", "--out-dir", help="输出文件目录。若未指定则不另存文件，仅在stdout中输出信息", required=None, type=Path, dest="outDir")
 
     writeParser = modeParser.add_parser("write", help="制作模式")
+    writeParser.add_argument("-f", dest="Makefile", type=Path,
+                             help="传入Makefile路径，默认当前目录的Makefile.json", default=Path("Makefile.json"), required=False)
 
     args = cmdParser.parse_args()
 
@@ -241,7 +291,7 @@ def main():
             read(args)
 
         case "write":
-            raise ValueError("此功能尚未完成……")
+            write(args)
 
         case _:
             raise ValueError("未知模式字符串{0:s}".format(args.mode))
