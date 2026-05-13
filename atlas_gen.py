@@ -10,6 +10,7 @@ from pathlib import Path
 import lzma
 
 from rect_packer import MaxRectPacker
+from charCode_mapping import CharCode
 
 # 格式：{(字体文件路径: Path, 字体号(ttc文件专用，否则默认0即可): int, size值: int): ImageFont.FreeTypeFont}
 # FontPool = dict()
@@ -178,14 +179,11 @@ def generate(projFilePath: Path):
     """
     读取项目设定文件(proj)，生成Makefile.json。
     """
+    makeFile_dict = dict()
+
     projFile = open(projFilePath, "rt")
     proj = json.load(projFile)
     projFile.close()
-
-    # 由于目前仍不清楚specialCharTable到底何意，目前照抄处理
-    makeFile_dict = dict()
-    makeFile_dict["specialCharTable"] = [
-        ord(c) for c in proj["specialCharTable"]]
 
     charSize = proj["charSize"]  # 每个单字大小
 
@@ -200,18 +198,14 @@ def generate(projFilePath: Path):
             text = txtFile.read()
             txtFile.close()
 
-            _str.append("".join(set("".join(text.splitlines()))))
+            _str.append("".join(text.splitlines()))
 
-        for c in "".join(_str):
+        for c in sorted(set("".join(_str))):
             cObj = Char()
             cObj.gen_img(ord(c), Path(
                 font["fontFile"]), charSize, font["border"], font["superSample"], font["ttcIndex"])
 
             charList.append(cObj)
-
-    # 主映射表先都用65535占位，表长为所有字符中unicode码最大值
-    makeFile_dict["mainMappingTable"] = [65535 for _ in range(
-        max([c.code for c in charList]) + 1)]
 
     packer = MaxRectPacker(proj["pagePixSize"])  # 打包进大图，安排好纹理页去向
     packer.pack(charList)
@@ -244,20 +238,19 @@ def generate(projFilePath: Path):
     for page in pageList:
         charList2 += page.charList
 
-    # 上述顺序作为charInfoTable内顺序，确定主映射表
-    makeFile_dict["charInfoTable"] = []
-    # print("len(mainMappingTable) = {0:n}".format(
-    #    len(makeFile_dict["mainMappingTable"])))
-    for i in range(len(charList2)):
-        # print(charList2[i].code)
-        makeFile_dict["mainMappingTable"][charList2[i].code] = i
-        makeFile_dict["charInfoTable"].append(charList2[i].get_dict())
+    cc = CharCode()
+    cc.import_char([i.code for i in charList2])
+
+    makeFile_dict["charInfoTable"] = [i.get_dict() for i in charList2]
+
+    makeFile_dict["mainMappingTable"] = cc.get_mainMappingTable()
+    makeFile_dict["specialCharTable"] = cc.get_specialCharTable()
 
     jsonFilePath = Path("Makefile.json").absolute()
     jsonFile = open(jsonFilePath, "wt")
     json.dump(makeFile_dict, jsonFile, ensure_ascii=False, indent='\t')
     jsonFile.close()
-    if (jsonFilePath.exists()):
+    if (jsonFilePath.exists() and jsonFilePath.is_file()):
         print("{0}已生成".format(jsonFilePath))
 
 

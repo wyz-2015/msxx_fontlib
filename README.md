@@ -28,7 +28,7 @@ $ ./msxx_fontlib.py read ./FONT_LIB.BIN -d ./D/
 
 制作过程有点类似`cmake`与`make`。
 
-1. 为了不令工作目录显得凌乱，建议在一个新建的工作目录里着手制作。这里举例为程序所在目录的子目录`./sample/`。
+1. 为了不令工作目录显得凌乱，建议在一个新建的工作目录里着手制作。这里举例为程序所在目录的子目录`./example/`。
 2. 用工具`atlas_gen.py`，读取`proj.json`，生成`Makefile.json`及其相关数据。
 
     ```
@@ -59,7 +59,6 @@ $ ./msxx_fontlib.py read ./FONT_LIB.BIN -d ./D/
     3. `border`：每个字符的下边距，单位像素。
     4. `superSample`超采样倍数。使用超采样生成的字体，最终看起来更“柔”一些。
     5. `charStr`与`charFile`，引入的字符。这两种键不一定要出现。`charStr`直接以json字符串的形式记载字符，尤其适合存在`不可打印字符`的情况；`charFile`则从键值指定的文本文件中导入出现于其中的所有字符。最后将导入上述两种途径导入字符的并集。
-4. `specialCharTable`尚不明确，例子中的是照抄原始文件的。建议维持现状。
 
 ## 依赖
 
