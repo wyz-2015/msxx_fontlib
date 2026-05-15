@@ -143,13 +143,13 @@ class MaxRectPacker():
         """返回使用的画布数量"""
         return len(self.bins)
 
-    def utilization(self, rects: List[R]) -> float:
+    def utilization(self, rects: List[Char]) -> float:
         """返回整体画布利用率 (0.0 ~ 1.0)"""
         used = sum(r.img.width * r.img.height for r in rects)
         total = self.page_count() * self.bin_w * self.bin_h
         return used / total if total else 0.0
 
-    def visualize(self, rects: List[R], save_path: str | None = None) -> Image.Image:
+    def visualize(self, rects: List[Char], save_path: str | None = None) -> Image.Image:
         """
         生成排版可视化图。每张画布横向拼接。
         若 save_path 提供则保存。
@@ -157,7 +157,7 @@ class MaxRectPacker():
         if not self.bins:
             return Image.new("RGBA", (1, 1), (0, 0, 0, 0))
 
-        pages: dict[int, List[R]] = {}
+        pages: dict[int, List[Char]] = {}
         for r in rects:
             pages.setdefault(r.pageID, []).append(r)
 

@@ -25,7 +25,8 @@ class MainMappingTable():
         return self.__str__()
 
     def read_from_bin(self):
-        tableSize = np.fromfile(self.file, np.ushort, 1)[0]
+        tableSize = np.fromfile(self.file, np.ushort, 1)[0]  # 字码主映射表长
+        # 字码主映射表，unicode码经过一系列映射(参见charCode_mapping.py，下简称“f”)，得到在此表中的索引值，对应数为在字符信息表CharInfoTable中的索引值。即CharInfoTable[MainMappingTable[f(unicode)]]
         self.data = np.fromfile(self.file, np.ushort, tableSize)
 
         self.table = [int(i) for i in self.data]
@@ -56,13 +57,15 @@ class SpecialCharTable(MainMappingTable):
         self.table = data["specialCharTable"]
         self.data = np.array(self.table, dtype=np.ushort)
 
+        # 特殊字符表，结构与MainMappingTable高度类似，只是表中数据为对应字的unicode码。本身是映射关系f中的一环。
+
 
 class CharInfoTable():
     CharInfoStruct = np.dtype([
         # ("unknown", np.uint8, (20,))
-        ("code", np.uint16),
-        ("page", np.uint16),
-        ("u1", np.float32),
+        ("code", np.uint16),  # unicode码
+        ("page", np.uint16),  # 所属纹理页号
+        ("u1", np.float32),  # UV映射，定位在纹理中的位置
         ("u2", np.float32),
         ("v1", np.float32),
         ("v2", np.float32)
@@ -84,7 +87,8 @@ class CharInfoTable():
         return self.__str__()
 
     def read_from_bin(self):
-        tableSize = np.fromfile(self.file, np.ushort, 1)[0]
+        tableSize = np.fromfile(self.file, np.ushort, 1)[0]  # 字符信息表表长
+        # 字符信息表，只收录实际在纹理图中有出现的
         self.data = np.fromfile(self.file, self.CharInfoStruct, tableSize)
 
         self.table = [
@@ -119,9 +123,10 @@ class CharInfoTable():
 
 class PageTable():
     InfoStruct = np.dtype([
-        ("pixWidth", np.uint32),
+        ("pixWidth", np.uint32),  # 纹理图的像素宽、高
         ("pixHeight", np.uint32),
-        ("pageSize", np.uint32),
+        ("pageSize", np.uint32),  # 纹理页数据大小，单位B
+        # 为每页纹理数据分配到内存空间时，地址会直接覆写到这个位置，即E[e]。由于PSP 32bit 机，地址值也只有32bit，故可以这样操作。
         ("address", np.uint32)
     ])
 
@@ -141,8 +146,9 @@ class PageTable():
         return self.__str__()
 
     def read_info_from_bin(self):
-        tableSize = np.fromfile(self.file, np.uint8, 1)[0]
-        self.pageInfoData = np.fromfile(self.file, self.InfoStruct, tableSize)
+        tableSize = np.fromfile(self.file, np.uint8, 1)[0]  # 纹理页数
+        self.pageInfoData = np.fromfile(
+            self.file, self.InfoStruct, tableSize)  # 纹理信息表
 
         self.pageInfoTable = [
             {"pixWidth": int(i["pixWidth"]),
@@ -156,6 +162,7 @@ class PageTable():
         np.array(self.pageInfoData, dtype=self.InfoStruct).tofile(self.file)
 
     def read_page_from_bin(self):
+        # 各页纹理数据。每页数据量大小在PageInfo中记载了
         for pageInfo in self.pageInfoData:
             pageSize = pageInfo["pageSize"]
             page = np.fromfile(self.file, np.uint8, pageSize)

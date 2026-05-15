@@ -126,9 +126,10 @@ class Page():
     def build_data_P(self):
         """
         根据PIL绘制的图像数据，推导获得索引数据
-        PIL画黑白图，再转换到索引式，也能把颜色控制在16内，但是其颜色号分配规则为：
-        [背景黑, 最亮白, ..., 最暗]
-        而MSXX FontLib纹理的颜色号分配规则则是：
+        PIL画黑白图，再转换到索引式，也能把颜色控制在16种内，其颜色号分配规则为：
+        [背景黑, 最暗, ..., 最亮白]
+        但是颜色号的范围却很可能不落在[0, 16)内。
+        MSXX FontLib纹理的颜色号分配规则是：
         [背景黑, 最暗, ..., 最亮白]
         """
         self.imgData_P = np.array(self.img.convert("P").get_flattened_data(),
@@ -140,7 +141,7 @@ class Page():
                                      for i in self.imgData_P.reshape(-1)))[1:]
         # print(colorIndexRange, len(colorIndexRange))
         colorIndexRange_fix = [int(round(i, 0)) for i in np.linspace(
-            15, 1, len(colorIndexRange))]
+            1, 15, len(colorIndexRange))]
         # colorIndexRange = colorIndexRange[:1] + colorIndexRange_fix
         colorIndexDict = {
             colorIndexRange[i]: colorIndexRange_fix[i] for i in range(len(colorIndexRange))}
@@ -188,6 +189,7 @@ def generate(projFilePath: Path):
     charSize = proj["charSize"]  # 每个单字大小
 
     # 按配置生成字图，加入到charList中
+    # TODO：需要一个检查不同font中是否含有重复字的机制。最好不要出现重复的字
     charList = []
     for font in proj["fonts"]:
         _str = []
