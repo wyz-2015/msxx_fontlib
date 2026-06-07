@@ -193,7 +193,6 @@ class PageTable():
             # print(len(data3), data3)
             img.putdata(data3)
             img.putpalette(TestPalette, "RGB")
-            img.convert("RGBA")
             img.save(outDir / "page{0:n}.png".format(i))
             img.close()
 
