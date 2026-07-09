@@ -1,8 +1,12 @@
 # msxx\_fontlib
 
-PSP《*Metal Slug XX*》字体纹理图`FONT_LIB.BIN`文件解析<s>与仿制</s>工具。
+PSP《*Metal Slug XX*》字体纹理图`FONT_LIB.BIN`文件解析与仿制工具套件。
 
-(目前虽能做到仿制，但是原游戏无法读取仿制版的字体……)
+## 套件构成
+
+1. `msxx_fontlib.py`：用于解析`FONT_LIB.BIN`字图库文件、根据工程文件重建字图库文件。
+2. `atlas_gen.py`：能生成`1`程序所用的工程文件。
+3. `charset_gen.py`：读取[`msxx_txt`](https://github.com/wyz-2015/msxx_txt/)生成的json文件并得出其所用字符集合的工具。适合配合`2`程序使用。
 
 ## 用法
 
@@ -58,7 +62,7 @@ $ ./msxx_fontlib.py read ./FONT_LIB.BIN -d ./D/
     2. `ttcIndex`，若字体文件是ttc集合字体文件，则用这个指定使用其中哪个子集。否则默认`0`即可。
     3. `border`：每个字符的下边距，单位像素。
     4. `superSample`超采样倍数。使用超采样生成的字体，最终看起来更“柔”一些。
-    5. `charStr`与`charFile`，引入的字符。这两种键不一定要出现。`charStr`直接以json字符串的形式记载字符，尤其适合存在`不可打印字符`的情况；`charFile`则从键值指定的文本文件中导入出现于其中的所有字符。最后将导入上述两种途径导入字符的并集。
+    5. `charStr`与`charFile`，引入的字符。这两种键不一定都要出现。`charStr`直接以json字符串的形式记载字符，尤其适合存在`不可打印字符`的情况；`charFile`则从键值指定的文本文件中导入出现于其中的所有字符。最后将导入上述两种途径导入字符的并集。
 
 ## 依赖
 
